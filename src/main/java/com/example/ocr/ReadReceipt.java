@@ -5,8 +5,18 @@ import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 public class ReadReceipt {
     ITesseract image = new Tesseract();
@@ -30,6 +40,48 @@ public class ReadReceipt {
             return receiptInfo;
         }
 
+    }
+
+    public String DoOCRAprise(String imagePath){
+
+        ReceiptInfo receiptInfo = new ReceiptInfo();
+        File directory = new File(imagePath);
+        System.out.println(directory.getAbsolutePath());
+
+        String receiptOcrEndpoint = "https://ocr.asprise.com/api/v1/receipt"; // Receipt OCR API endpoint
+        File imageFile = new File(directory.getAbsolutePath());
+
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(receiptOcrEndpoint);
+
+
+            post.setEntity(MultipartEntityBuilder.create()
+                    .addTextBody("client_id", "TEST")       // Use 'TEST' for testing purpose
+                    .addTextBody("recognizer", "auto")      // can be 'US', 'CA', 'JP', 'SG' or 'auto'
+                    .addTextBody("ref_no", "ocr_java_123'") // optional caller provided ref code
+                    .addPart("file", new FileBody(imageFile))    // the image file
+                    .build());
+
+            try (CloseableHttpResponse response = client.execute(post)) {
+                String resp = EntityUtils.toString(response.getEntity()); // Receipt OCR result in JSON
+                System.out.println(resp);
+
+//                receiptInfo.setDate(ExtractDate(str));
+//                receiptInfo.setAmount(ExtractAmount(str));
+//                receiptInfo.setMerchant(ExtractVendor(str));
+                return resp;
+
+            } catch (ClientProtocolException e) {
+                e.printStackTrace();
+                return "";
+            } catch (IOException e) {
+                e.printStackTrace();
+                return "";
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     private String ExtractAmount(String text){

@@ -60,6 +60,25 @@ public class DemoApplication {
 		return response;
 	}
 
+	@PostMapping(path = "/aprise")
+	public String receiptInfoAprise(@RequestParam("imageFile") MultipartFile file){
+
+		Path root = Paths.get("uploads");
+
+		String fileName = file.getOriginalFilename().split("\\.")[0]
+				+ "-" + (new Date().toString()) + "."
+				+ file.getOriginalFilename().split("\\.")[1];
+
+		try {
+			Files.copy(file.getInputStream(), root.resolve(fileName));
+		} catch (Exception e) {
+			throw new RuntimeException("Could not store the file. Error: " + e.getMessage());
+		}
+
+		ReadReceipt receiptData = new ReadReceipt();
+		return receiptData.DoOCRAprise("uploads/"+fileName);
+	}
+
 
 
 }
